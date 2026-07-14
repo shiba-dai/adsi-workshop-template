@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  title: 勤怠管理 API — Phase 1
+  description: 認証 + 打刻 + 履歴閲覧
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: ローカル開発
+
+security:
+  - sessionAuth: []
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [認証]
+      summary: ログイン
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: ログイン成功（セッション開始）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+        '401':
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/logout:
+    post:
+      tags: [認証]
+      summary: ログアウト
+      responses:
+        '204':
+          description: ログアウト成功
+
+  /api/auth/me:
+    get:
+      tags: [認証]
+      summary: ログインユーザー情報取得
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeResponse'
+        '401':
+          description: 未認証
+
+  /api/attendance/clock-in:
+    post:
+      tags: [打刻]
+      summary: 出勤打刻
+      responses:
+        '201':
+          description: 打刻成功（リソース作成）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceResponse'
+        '409':
+          description: 既に出勤打刻済み
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/attendance/clock-out:
+    post:
+      tags: [打刻]
+      summary: 退勤打刻
+      responses:
+        '200':
+          description: 打刻成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceResponse'
+        '400':
+          description: 出勤打刻がされていない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 既に退勤打刻済み
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/attendance/today:
+    get:
+      tags: [打刻]
+      summary: 本日の打刻状態取得
+      responses:
+        '200':
+          description: 本日の打刻あり
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceResponse'
+        '204':
+          description: 本日の打刻なし（未出勤）
+
+  /api/attendance/history:
+    get:
+      tags: [履歴]
+      summary: 月次勤怠履歴取得
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 2026
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 7
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttendanceResponse'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: Spring Security セッション Cookie
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: tanaka@example.com
+        password:
+          type: string
+          format: password
+          example: password123
+
+    EmployeeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        employeeCode:
+          type: string
+          example: EMP001
+        name:
+          type: string
+          example: 田中太郎
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [EMPLOYEE, MANAGER, ADMIN]
+
+    AttendanceResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        workDate:
+          type: string
+          format: date
+          example: '2026-07-14'
+        clockInTime:
+          type: string
+          format: date-time
+          nullable: true
+        clockOutTime:
+          type: string
+          format: date-time
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: エラーコード
+        message:
+          type: string
+          description: ユーザー向けメッセージ

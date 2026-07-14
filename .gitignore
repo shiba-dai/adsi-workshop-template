@@ -1,0 +1,28 @@
+# Build outputs
+build/
+.gradle/
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test reports
+packages/backend/build/
