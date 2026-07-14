@@ -1,9 +1,11 @@
 package com.example.attendance.controller;
 
-import com.example.attendance.dto.AttendanceResponse;
-import com.example.attendance.dto.EmployeeResponse;
+import com.example.attendance.dto.*;
 import com.example.attendance.service.AttendanceService;
+import com.example.attendance.service.BreakService;
+import com.example.attendance.service.WorkingTimeService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,9 +18,15 @@ public class AttendanceController {
     private static final String SESSION_EMPLOYEE_KEY = "authenticatedEmployee";
 
     private final AttendanceService attendanceService;
+    private final BreakService breakService;
+    private final WorkingTimeService workingTimeService;
 
-    public AttendanceController(AttendanceService attendanceService) {
+    public AttendanceController(AttendanceService attendanceService,
+                                BreakService breakService,
+                                WorkingTimeService workingTimeService) {
         this.attendanceService = attendanceService;
+        this.breakService = breakService;
+        this.workingTimeService = workingTimeService;
     }
 
     @PostMapping("/clock-in")
@@ -44,13 +52,60 @@ public class AttendanceController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<AttendanceResponse>> history(
+    public ResponseEntity<List<AttendanceDetailResponse>> history(
             @RequestParam int year,
             @RequestParam int month,
             HttpServletRequest request) {
         var employeeId = getEmployeeId(request);
-        var history = attendanceService.getMonthlyHistory(employeeId, year, month);
+        var history = attendanceService.getMonthlyDetailHistory(employeeId, year, month);
         return ResponseEntity.ok(history);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AttendanceDetailResponse> updateAttendance(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateAttendanceRequest body,
+            HttpServletRequest request) {
+        var employeeId = getEmployeeId(request);
+        var response = attendanceService.updateAttendance(employeeId, id, body);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{attendanceId}/breaks")
+    public ResponseEntity<List<BreakResponse>> getBreaks(
+            @PathVariable Long attendanceId) {
+        var breaks = breakService.getBreaks(attendanceId);
+        return ResponseEntity.ok(breaks);
+    }
+
+    @PostMapping("/{attendanceId}/breaks")
+    public ResponseEntity<BreakResponse> addBreak(
+            @PathVariable Long attendanceId,
+            @Valid @RequestBody CreateBreakRequest body,
+            HttpServletRequest request) {
+        var employeeId = getEmployeeId(request);
+        var response = breakService.addBreak(employeeId, attendanceId, body);
+        return ResponseEntity.status(201).body(response);
+    }
+
+    @DeleteMapping("/{attendanceId}/breaks/{breakId}")
+    public ResponseEntity<Void> deleteBreak(
+            @PathVariable Long attendanceId,
+            @PathVariable Long breakId,
+            HttpServletRequest request) {
+        var employeeId = getEmployeeId(request);
+        breakService.deleteBreak(employeeId, breakId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/overtime")
+    public ResponseEntity<OvertimeSummaryResponse> overtime(
+            @RequestParam int year,
+            @RequestParam int month,
+            HttpServletRequest request) {
+        var employeeId = getEmployeeId(request);
+        var summary = workingTimeService.getOvertimeSummary(employeeId, year, month);
+        return ResponseEntity.ok(summary);
     }
 
     private Long getEmployeeId(HttpServletRequest request) {

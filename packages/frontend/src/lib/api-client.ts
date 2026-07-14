@@ -14,6 +14,45 @@ export interface AttendanceResponse {
   clockOutTime: string | null;
 }
 
+export interface BreakResponse {
+  id: number;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+}
+
+export interface AttendanceDetailResponse {
+  id: number;
+  workDate: string;
+  clockInTime: string | null;
+  clockOutTime: string | null;
+  workingMinutes: number;
+  breakMinutes: number;
+  overtimeMinutes: number;
+  breaks: BreakResponse[];
+  version: number;
+}
+
+export interface OvertimeSummaryResponse {
+  year: number;
+  month: number;
+  monthlyOvertimeMinutes: number;
+  yearlyOvertimeMinutes: number;
+  monthlyLimitWarning: boolean;
+  yearlyLimitWarning: boolean;
+}
+
+export interface UpdateAttendanceRequest {
+  clockInTime: string;
+  clockOutTime: string | null;
+  version: number;
+}
+
+export interface CreateBreakRequest {
+  startTime: string;
+  endTime: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -121,10 +160,74 @@ export async function getToday(): Promise<AttendanceResponse | null> {
 export async function getHistory(
   year: number,
   month: number
-): Promise<AttendanceResponse[]> {
+): Promise<AttendanceDetailResponse[]> {
   const response = await fetch(
     withBasePath(`/api/attendance/history?year=${year}&month=${month}`),
     { credentials: "include" }
   );
-  return handleResponse<AttendanceResponse[]>(response);
+  return handleResponse<AttendanceDetailResponse[]>(response);
+}
+
+export async function updateAttendance(
+  id: number,
+  request: UpdateAttendanceRequest
+): Promise<AttendanceDetailResponse> {
+  const response = await fetch(withBasePath(`/api/attendance/${id}`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(request),
+  });
+  return handleResponse<AttendanceDetailResponse>(response);
+}
+
+export async function getBreaks(attendanceId: number): Promise<BreakResponse[]> {
+  const response = await fetch(
+    withBasePath(`/api/attendance/${attendanceId}/breaks`),
+    { credentials: "include" }
+  );
+  return handleResponse<BreakResponse[]>(response);
+}
+
+export async function addBreak(
+  attendanceId: number,
+  request: CreateBreakRequest
+): Promise<BreakResponse> {
+  const response = await fetch(
+    withBasePath(`/api/attendance/${attendanceId}/breaks`),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(request),
+    }
+  );
+  return handleResponse<BreakResponse>(response);
+}
+
+export async function deleteBreak(
+  attendanceId: number,
+  breakId: number
+): Promise<void> {
+  const response = await fetch(
+    withBasePath(`/api/attendance/${attendanceId}/breaks/${breakId}`),
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw { status: response.status, message: response.statusText } as ApiError;
+  }
+}
+
+export async function getOvertimeSummary(
+  year: number,
+  month: number
+): Promise<OvertimeSummaryResponse> {
+  const response = await fetch(
+    withBasePath(`/api/attendance/overtime?year=${year}&month=${month}`),
+    { credentials: "include" }
+  );
+  return handleResponse<OvertimeSummaryResponse>(response);
 }

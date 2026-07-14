@@ -3,17 +3,31 @@
 import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import AttendanceTable from "@/components/AttendanceTable";
-import { getMe, getHistory } from "@/lib/api-client";
+import EditAttendanceModal from "@/components/EditAttendanceModal";
+import { getMe, getHistory, getOvertimeSummary } from "@/lib/api-client";
 import { navigateTo, getFullPath } from "@/lib/navigation";
-import type { EmployeeResponse, AttendanceResponse } from "@/lib/api-client";
+import type {
+  EmployeeResponse,
+  AttendanceDetailResponse,
+  OvertimeSummaryResponse,
+} from "@/lib/api-client";
+
+function formatMinutesLabel(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}:${m.toString().padStart(2, "0")}`;
+}
 
 export default function HistoryPage() {
   const [employee, setEmployee] = useState<EmployeeResponse | null>(null);
-  const [records, setRecords] = useState<AttendanceResponse[]>([]);
+  const [records, setRecords] = useState<AttendanceDetailResponse[]>([]);
+  const [overtime, setOvertime] = useState<OvertimeSummaryResponse | null>(null);
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editingRecord, setEditingRecord] =
+    useState<AttendanceDetailResponse | null>(null);
 
   const fetchEmployee = useCallback(async () => {
     try {
@@ -33,8 +47,12 @@ export default function HistoryPage() {
     setIsLoading(true);
     setError("");
     try {
-      const data = await getHistory(year, month);
+      const [data, overtimeData] = await Promise.all([
+        getHistory(year, month),
+        getOvertimeSummary(year, month),
+      ]);
       setRecords(data);
+      setOvertime(overtimeData);
     } catch {
       setError("勤怠履歴の取得に失敗しました。");
     } finally {
@@ -68,6 +86,15 @@ export default function HistoryPage() {
     }
   };
 
+  const handleEdit = (record: AttendanceDetailResponse) => {
+    setEditingRecord(record);
+  };
+
+  const handleEditSaved = () => {
+    setEditingRecord(null);
+    fetchHistory();
+  };
+
   if (!employee) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -80,7 +107,7 @@ export default function HistoryPage() {
     <div className="min-h-screen">
       <Header employeeName={employee.name} />
 
-      <main className="mx-auto max-w-4xl px-4 py-8">
+      <main className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-4">
           <a
             href={getFullPath("/")}
@@ -115,13 +142,44 @@ export default function HistoryPage() {
             </button>
           </div>
 
+          {overtime && (overtime.monthlyLimitWarning || overtime.yearlyLimitWarning) && (
+            <div className="mb-4 rounded bg-orange-50 border border-orange-200 p-3 text-sm text-orange-800">
+              {overtime.monthlyLimitWarning && (
+                <p>
+                  ⚠ 月間残業: {formatMinutesLabel(overtime.monthlyOvertimeMinutes)} / 45:00
+                  （36協定上限に達しています）
+                </p>
+              )}
+              {overtime.yearlyLimitWarning && (
+                <p>
+                  ⚠ 年間残業: {formatMinutesLabel(overtime.yearlyOvertimeMinutes)} / 360:00
+                  （36協定年間上限に達しています）
+                </p>
+              )}
+            </div>
+          )}
+
+          {overtime && !overtime.monthlyLimitWarning && overtime.monthlyOvertimeMinutes > 0 && (
+            <div className="mb-4 text-sm text-gray-600">
+              月間残業: {formatMinutesLabel(overtime.monthlyOvertimeMinutes)} / 45:00
+            </div>
+          )}
+
           {isLoading ? (
             <p className="text-center text-gray-500 py-8">読み込み中...</p>
           ) : (
-            <AttendanceTable records={records} />
+            <AttendanceTable records={records} onEdit={handleEdit} />
           )}
         </div>
       </main>
+
+      {editingRecord && (
+        <EditAttendanceModal
+          record={editingRecord}
+          onClose={() => setEditingRecord(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
     </div>
   );
 }
