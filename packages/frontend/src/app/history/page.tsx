@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import AttendanceTable from "@/components/AttendanceTable";
 import EditAttendanceModal from "@/components/EditAttendanceModal";
+import WorkingTimeChart from "@/components/WorkingTimeChart";
 import { getMe, getHistory, getOvertimeSummary } from "@/lib/api-client";
 import { navigateTo, getFullPath } from "@/lib/navigation";
 import type {
@@ -168,7 +169,10 @@ export default function HistoryPage() {
           {isLoading ? (
             <p className="text-center text-gray-500 py-8">読み込み中...</p>
           ) : (
-            <AttendanceTable records={records} onEdit={handleEdit} />
+            <>
+              <WorkingTimeChart records={records} />
+              <AttendanceTable records={records} onEdit={handleEdit} />
+            </>
           )}
         </div>
       </main>
