@@ -17,15 +17,6 @@ function proxyRequest(req, res, targetPort, targetPath) {
   };
 
   const proxyReq = http.request(options, (proxyRes) => {
-    let location = proxyRes.headers["location"];
-    if (location) {
-      if (location.startsWith(BASE_PATH)) {
-        location = FULL_PREFIX + location.slice(BASE_PATH.length);
-      } else if (location.startsWith("/") && !location.startsWith(SAGEMAKER_PREFIX)) {
-        location = FULL_PREFIX + location;
-      }
-      proxyRes.headers["location"] = location;
-    }
     res.writeHead(proxyRes.statusCode, proxyRes.headers);
     proxyRes.pipe(res);
   });
@@ -45,14 +36,15 @@ const server = http.createServer((req, res) => {
   // SageMaker strips /codeeditor/default before forwarding to port 3000.
   // We receive: /absports/3000/...
   //
-  // Next.js basePath = /absports/3000, so pass paths starting with BASE_PATH
-  // directly to Next.js (it expects them). API requests are stripped and sent to backend.
+  // Next.js basePath = /codeeditor/default/absports/3000 (full prefix).
+  // So we prepend /codeeditor/default to reconstruct what Next.js expects.
 
   if (path.startsWith(BASE_PATH + "/api/") || path === BASE_PATH + "/api") {
     const apiPath = path.slice(BASE_PATH.length);
     proxyRequest(req, res, BACKEND_PORT, apiPath);
   } else if (path.startsWith(BASE_PATH)) {
-    proxyRequest(req, res, NEXT_PORT, path);
+    const nextPath = SAGEMAKER_PREFIX + path;
+    proxyRequest(req, res, NEXT_PORT, nextPath);
   } else if (path === "/") {
     res.writeHead(307, { Location: FULL_PREFIX + "/" });
     res.end();
@@ -64,7 +56,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(LISTEN_PORT, "0.0.0.0", () => {
   console.log(`SageMaker proxy listening on :${LISTEN_PORT}`);
-  console.log(`  Next.js  -> 127.0.0.1:${NEXT_PORT} (basePath: ${BASE_PATH})`);
+  console.log(`  Next.js  -> 127.0.0.1:${NEXT_PORT} (basePath: ${FULL_PREFIX})`);
   console.log(`  Backend  -> 127.0.0.1:${BACKEND_PORT}`);
   console.log(`  Full prefix: ${FULL_PREFIX}`);
 });
