@@ -36,11 +36,6 @@ public class WorkingTimeServiceImpl implements WorkingTimeService {
         this.breakRecordRepository = breakRecordRepository;
     }
 
-    public WorkingTimeServiceImpl() {
-        this.attendanceRecordRepository = null;
-        this.breakRecordRepository = null;
-    }
-
     @Override
     public WorkDuration calculateDuration(AttendanceRecord record, List<BreakRecord> breaks) {
         if (record.getClockOutTime() == null) {

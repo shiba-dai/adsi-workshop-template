@@ -2,10 +2,15 @@ package com.example.attendance.service;
 
 import com.example.attendance.entity.AttendanceRecord;
 import com.example.attendance.entity.BreakRecord;
+import com.example.attendance.repository.AttendanceRecordRepository;
+import com.example.attendance.repository.BreakRecordRepository;
 import com.example.attendance.service.impl.WorkingTimeServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,13 +18,20 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 class WorkingTimeServiceTest {
+
+    @Mock
+    private AttendanceRecordRepository attendanceRecordRepository;
+
+    @Mock
+    private BreakRecordRepository breakRecordRepository;
 
     private WorkingTimeService workingTimeService;
 
     @BeforeEach
     void setUp() {
-        workingTimeService = new WorkingTimeServiceImpl();
+        workingTimeService = new WorkingTimeServiceImpl(attendanceRecordRepository, breakRecordRepository);
     }
 
     @Test
