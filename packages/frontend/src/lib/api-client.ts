@@ -28,12 +28,20 @@ function getApiBase(): string {
   if (typeof window === "undefined") {
     return process.env.NEXT_PUBLIC_ASSET_PREFIX ?? "";
   }
-  // ブラウザ上では現在のURLからbasePathを動的に検出する
-  // SageMaker: /codeeditor/default/absports/3001/login → prefix = /codeeditor/default/absports/3001
-  const match = window.location.pathname.match(/^(\/.*\/absports\/\d+)/);
-  if (match) {
-    return match[1];
+  const pathname = window.location.pathname;
+
+  // /codeeditor/.../absports/PORT がフルで含まれる場合
+  const fullMatch = pathname.match(/^(\/codeeditor\/[^/]+\/absports\/\d+)/);
+  if (fullMatch) {
+    return fullMatch[1];
   }
+
+  // /absports/PORT のみの場合、/codeeditor/default を補完
+  const shortMatch = pathname.match(/^(\/absports\/\d+)/);
+  if (shortMatch) {
+    return `/codeeditor/default${shortMatch[1]}`;
+  }
+
   return "";
 }
 

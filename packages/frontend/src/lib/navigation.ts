@@ -24,19 +24,22 @@ const BASE_PATH_PATTERN = /^(\/.*\/absports\/\d+)/;
  */
 export function getNavigationPrefix(): string {
   if (typeof window === "undefined") {
-    return process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+    return process.env.NEXT_PUBLIC_ASSET_PREFIX ?? process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   }
 
   const pathname = window.location.pathname;
 
+  // ブラウザURLに /codeeditor/.../absports/PORT が含まれる場合
   const sagemakerMatch = pathname.match(SAGEMAKER_PATH_PATTERN);
   if (sagemakerMatch) {
     return sagemakerMatch[1];
   }
 
-  const baseMatch = pathname.match(BASE_PATH_PATTERN);
-  if (baseMatch) {
-    return baseMatch[1];
+  // SageMaker内部ではブラウザのpathnameが /absports/PORT/... になる場合がある
+  // この場合、/codeeditor/default を補完する必要がある
+  const absportsMatch = pathname.match(/^(\/absports\/\d+)/);
+  if (absportsMatch) {
+    return `/codeeditor/default${absportsMatch[1]}`;
   }
 
   return process.env.NEXT_PUBLIC_BASE_PATH ?? "";
