@@ -24,11 +24,21 @@ export interface ApiError {
   message: string;
 }
 
-// Base path for SageMaker preview support
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+function getApiBase(): string {
+  if (typeof window === "undefined") {
+    return process.env.NEXT_PUBLIC_ASSET_PREFIX ?? "";
+  }
+  // ブラウザ上では現在のURLからbasePathを動的に検出する
+  // SageMaker: /codeeditor/default/absports/3001/login → prefix = /codeeditor/default/absports/3001
+  const match = window.location.pathname.match(/^(\/.*\/absports\/\d+)/);
+  if (match) {
+    return match[1];
+  }
+  return "";
+}
 
 function withBasePath(path: string): string {
-  return `${BASE_PATH}${path}`;
+  return `${getApiBase()}${path}`;
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {

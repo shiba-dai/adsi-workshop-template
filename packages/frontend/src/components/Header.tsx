@@ -1,20 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { logout } from "@/lib/api-client";
+import { navigateTo } from "@/lib/navigation";
 
 interface HeaderProps {
   employeeName: string;
 }
 
 export default function Header({ employeeName }: HeaderProps) {
-  const router = useRouter();
-
   const handleLogout = async () => {
     try {
       await logout();
     } finally {
-      router.push("/login");
+      navigateTo("/login");
     }
   };
 

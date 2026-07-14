@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import { getFullPath } from "@/lib/navigation";
 import Header from "@/components/Header";
 import ClockInButton from "@/components/ClockInButton";
 import ClockOutButton from "@/components/ClockOutButton";
@@ -11,6 +11,7 @@ import {
   clockIn,
   clockOut,
 } from "@/lib/api-client";
+import { navigateTo } from "@/lib/navigation";
 import type { EmployeeResponse, AttendanceResponse } from "@/lib/api-client";
 
 type AttendanceStatus = "not_clocked_in" | "clocked_in" | "clocked_out";
@@ -56,7 +57,12 @@ export default function DashboardPage() {
       const [me, today] = await Promise.all([getMe(), getToday()]);
       setEmployee(me);
       setAttendance(today);
-    } catch {
+    } catch (e: unknown) {
+      const apiError = e as { status?: number };
+      if (apiError?.status === 401) {
+        navigateTo("/login");
+        return;
+      }
       setError("データの取得に失敗しました。");
     }
   }, []);
@@ -149,12 +155,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <Link
-            href="/history"
+          <a
+            href={getFullPath("/history")}
             className="text-blue-600 hover:text-blue-800 hover:underline"
           >
             勤怠履歴を見る
-          </Link>
+          </a>
         </div>
       </main>
     </div>

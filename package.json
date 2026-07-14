@@ -1,0 +1,14 @@
+{
+  "name": "attendance-app",
+  "private": true,
+  "scripts": {
+    "setup": "cd packages/backend && ./gradlew build -x test && cd ../frontend && npm install",
+    "boot": "cd packages/backend && ./gradlew bootRun",
+    "boot:workshop": "cd packages/backend && ./gradlew bootRun --args='--spring.profiles.active=workshop'",
+    "dev": "cd packages/frontend && npm run dev",
+    "dev:sagemaker": "cd packages/backend && ./gradlew bootRun --args='--spring.profiles.active=workshop' & cd packages/frontend && SAGEMAKER=1 npm run dev & cd packages/frontend && node proxy.js",
+    "dev:sagemaker:stop": "pkill -f 'gradlew bootRun' ; pkill -f 'next dev' ; pkill -f 'node proxy.js' ; echo stopped",
+    "check:backend": "cd packages/backend && ./gradlew test",
+    "lint:frontend": "cd packages/frontend && npm run lint"
+  }
+}

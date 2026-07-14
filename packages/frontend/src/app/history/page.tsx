@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import Header from "@/components/Header";
 import AttendanceTable from "@/components/AttendanceTable";
 import { getMe, getHistory } from "@/lib/api-client";
+import { navigateTo, getFullPath } from "@/lib/navigation";
 import type { EmployeeResponse, AttendanceResponse } from "@/lib/api-client";
 
 export default function HistoryPage() {
@@ -19,7 +19,12 @@ export default function HistoryPage() {
     try {
       const me = await getMe();
       setEmployee(me);
-    } catch {
+    } catch (e: unknown) {
+      const apiError = e as { status?: number };
+      if (apiError?.status === 401) {
+        navigateTo("/login");
+        return;
+      }
       setError("ユーザー情報の取得に失敗しました。");
     }
   }, []);
@@ -77,12 +82,12 @@ export default function HistoryPage() {
 
       <main className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-4">
-          <Link
-            href="/"
+          <a
+            href={getFullPath("/")}
             className="text-blue-600 hover:text-blue-800 hover:underline text-sm"
           >
             ダッシュボードに戻る
-          </Link>
+          </a>
         </div>
 
         {error && (

@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { login } from "@/lib/api-client";
+import { navigateTo } from "@/lib/navigation";
 import type { ApiError } from "@/lib/api-client";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,7 +18,7 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      router.push("/");
+      navigateTo("/");
     } catch (err: unknown) {
       const apiError = err as ApiError;
       if (apiError.status === 401) {
