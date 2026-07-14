@@ -1,11 +1,15 @@
 package com.example.attendance.service;
 
+import com.example.attendance.dto.UpdateAttendanceRequest;
 import com.example.attendance.entity.AttendanceRecord;
 import com.example.attendance.exception.AlreadyClockedInException;
 import com.example.attendance.exception.AlreadyClockedOutException;
+import com.example.attendance.exception.BusinessException;
 import com.example.attendance.exception.NotClockedInException;
 import com.example.attendance.repository.AttendanceRecordRepository;
+import com.example.attendance.repository.BreakRecordRepository;
 import com.example.attendance.service.impl.AttendanceServiceImpl;
+import com.example.attendance.service.impl.WorkingTimeServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,13 +33,17 @@ class AttendanceServiceImplTest {
     @Mock
     private AttendanceRecordRepository attendanceRecordRepository;
 
+    @Mock
+    private BreakRecordRepository breakRecordRepository;
+
     private AttendanceServiceImpl attendanceService;
 
     private final Long employeeId = 1L;
 
     @BeforeEach
     void setUp() {
-        attendanceService = new AttendanceServiceImpl(attendanceRecordRepository);
+        var workingTimeService = new WorkingTimeServiceImpl(attendanceRecordRepository, breakRecordRepository);
+        attendanceService = new AttendanceServiceImpl(attendanceRecordRepository, breakRecordRepository, workingTimeService);
     }
 
     @Test
@@ -152,6 +160,60 @@ class AttendanceServiceImplTest {
         var result = attendanceService.getMonthlyHistory(employeeId, 2026, 7);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("打刻修正: 自分の打刻を修正すると更新されたレスポンスが返される")
+    void updateAttendance_ownRecord_returnsUpdatedResponse() {
+        var existing = AttendanceRecord.builder()
+            .id(1L)
+            .employeeId(employeeId)
+            .workDate(LocalDate.of(2026, 7, 1))
+            .clockInTime(LocalDateTime.of(2026, 7, 1, 9, 0))
+            .clockOutTime(LocalDateTime.of(2026, 7, 1, 18, 0))
+            .version(0L)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .build();
+        when(attendanceRecordRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+            .thenAnswer(inv -> inv.getArgument(0));
+        when(breakRecordRepository.findByAttendanceRecordId(1L)).thenReturn(List.of());
+
+        var request = new UpdateAttendanceRequest(
+            LocalDateTime.of(2026, 7, 1, 8, 30),
+            LocalDateTime.of(2026, 7, 1, 17, 30),
+            0L
+        );
+
+        var result = attendanceService.updateAttendance(employeeId, 1L, request);
+
+        assertThat(result.clockInTime()).isEqualTo(LocalDateTime.of(2026, 7, 1, 8, 30));
+        assertThat(result.clockOutTime()).isEqualTo(LocalDateTime.of(2026, 7, 1, 17, 30));
+    }
+
+    @Test
+    @DisplayName("打刻修正: 他人の打刻を修正しようとすると403エラー")
+    void updateAttendance_otherEmployee_throwsForbidden() {
+        var existing = AttendanceRecord.builder()
+            .id(1L)
+            .employeeId(2L)
+            .workDate(LocalDate.of(2026, 7, 1))
+            .clockInTime(LocalDateTime.of(2026, 7, 1, 9, 0))
+            .clockOutTime(LocalDateTime.of(2026, 7, 1, 18, 0))
+            .version(0L)
+            .build();
+        when(attendanceRecordRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        var request = new UpdateAttendanceRequest(
+            LocalDateTime.of(2026, 7, 1, 8, 30),
+            LocalDateTime.of(2026, 7, 1, 17, 30),
+            0L
+        );
+
+        assertThatThrownBy(() -> attendanceService.updateAttendance(employeeId, 1L, request))
+            .isInstanceOf(BusinessException.class)
+            .hasMessageContaining("権限");
     }
 
     private AttendanceRecord createRecord(LocalDateTime clockOutTime) {

@@ -5,6 +5,7 @@ import { getFullPath } from "@/lib/navigation";
 import Header from "@/components/Header";
 import ClockInButton from "@/components/ClockInButton";
 import ClockOutButton from "@/components/ClockOutButton";
+import MonthlySummary from "@/components/MonthlySummary";
 import {
   getMe,
   getToday,
@@ -152,6 +153,10 @@ export default function DashboardPage() {
               isLoading={isClockOutLoading}
             />
           </div>
+        </div>
+
+        <div className="mt-6">
+          <MonthlySummary />
         </div>
 
         <div className="mt-6 text-center">
