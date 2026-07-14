@@ -53,8 +53,9 @@ npm run lint:frontend      # Frontend lint
 
 - `docs/requirements/attendance-app.md` — 確定済み要求仕様
 - `docs/working/requirements/` — Q&A 作業ドキュメント
-- `docs/design/` — 設計ドキュメント（未着手）
-- `docs/units/` — Unit of Work 定義（未着手）
+- `docs/design/phase1-design.md` — Phase 1 設計（ドメイン/DB/API/画面）
+- `docs/design/phase1-openapi.yaml` — Phase 1 OpenAPI 定義
+- `docs/units/` — Unit of Work 定義（Phase 1: 4 Unit）
 
 ## 実装フェーズ
 
@@ -67,6 +68,34 @@ npm run lint:frontend      # Frontend lint
 
 ## SageMaker プレビュー
 
-- PORTS タブ → 地球儀 → URL の `ports` を `absports` に置換
-- フル basePath: `/codeeditor/default/absports/3000`
-- すべての fetch に `withBasePath()` を適用すること
+### 起動
+
+```bash
+npm run dev:sagemaker        # Backend(H2) + Frontend + proxy 一括起動
+npm run dev:sagemaker:stop   # 停止
+```
+
+### ブラウザアクセス
+
+1. PORTS タブで 3001 の地球儀ボタンをクリック
+2. URL を以下の形式に修正（`/codeeditor/default/absports/PORT/` が正しいプレフィックス）:
+
+```
+https://<studio-domain>/codeeditor/default/absports/3001/login
+```
+
+**注意**: `/codeeditor/default/` は必須。省略すると「Unsupported URL path」になる。
+
+### テストユーザー
+
+| メール | パスワード | ロール |
+|--------|-----------|--------|
+| tanaka@example.com | password123 | 一般社員 |
+| sato@example.com | password123 | 管理者 |
+| suzuki@example.com | password123 | システム管理者 |
+
+### トラブルシューティング
+
+- **「Unsupported URL path」**: URL に `/codeeditor/default` が含まれているか確認
+- **308リダイレクトでループ**: ブラウザキャッシュをクリア（Ctrl+Shift+Delete）
+- **Frontend 500エラー**: `rm -rf packages/frontend/.next` で再起動
